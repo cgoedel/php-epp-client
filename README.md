@@ -49,6 +49,8 @@ Currently supported registries:
 - DNS.PT (.pt)
 - Norid (.no)
 - Arnes (.si)
+- Nic.lv (.lv)
+- SK-NIC (.sk)
 
 
 All code changes are tested automatically with the phpunit tests in the Tests directory
@@ -85,12 +87,13 @@ How to use this repository
 3. Create a `settings.ini` in with the following contents:
 ```
         interface=eppConnection
-        hostname=ssl://eppltest1.metaregistrar.com
+        hostname=ssl://epp-ote.metaregistrar.com
         port=7000
         userid=xxxxxxxx
         password=xxxxxxxxx
         logging=true
         certificatefile=/home/xxxxxx/xxxxxxx.pem
+        certificatekey=/home/xxxxxx/xxxxxxx.key
         certificatepassword=xxxxxxx
         verifypeer=true/false
         verifypeername=true/false
@@ -104,7 +107,7 @@ How to use this repository
 Or set all parameters individually:
 ```
 $conn = new Metaregistrar\EPP\eppConnection();
-$conn->setHostname('ssl://eppltest1.metaregistrar.com'); // Hostname may vary depending on the registry selected
+$conn->setHostname('ssl://epp-ote.metaregistrar.com'); // Hostname may vary depending on the registry selected
 $conn->setPort(7000); // Port may vary depending on the registry selected
 $conn->setUsername('xxxxxxxx');
 $conn->setPassword('xxxxxxxxx');

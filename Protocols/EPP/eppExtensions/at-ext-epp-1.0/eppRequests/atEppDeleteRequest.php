@@ -6,7 +6,9 @@ class atEppDeleteRequest extends eppDeleteRequest
 {
     use atEppCommandTrait;
 
-    function __construct($deleteinfo, atEppExtensionChain $atEppExtensionChain = null) {
+    protected $atEppExtensionChain = null;
+
+    function __construct($deleteinfo, ?atEppExtensionChain $atEppExtensionChain = null) {
         $this->atEppExtensionChain = $atEppExtensionChain;
 
         parent::__construct($deleteinfo);

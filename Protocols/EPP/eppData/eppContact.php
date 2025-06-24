@@ -75,7 +75,7 @@ class eppContact {
         $this->setVoice($voice);
         $this->setFax($fax);
         $this->setStatus($status);
-        $this->setPassword(self::generateRandomString(10));
+
     }
 
     public function setDisclose($disclose) {
@@ -163,7 +163,7 @@ class eppContact {
 
     /**
      * Gets the email address
-     * @return string
+     * @return string|null
      */
     public function getEmail() {
         return $this->email;
@@ -178,7 +178,7 @@ class eppContact {
      */
 
     public function setPassword($password) {
-        if ($password) {
+        if ($password !== null) {
             $this->password = htmlspecialchars($password, ENT_COMPAT, "UTF-8");
         } else {
             $this->password = null;
@@ -200,12 +200,12 @@ class eppContact {
      * @return void
      */
     public function setVoice($voice) {
-        $this->voice = $this->validatePhoneNumber($voice);
+        $this->voice = $voice;
     }
 
     /**
      * Gets the phone number
-     * @return string
+     * @return string|null
      */
     public function getVoice() {
         return $this->voice;
@@ -217,7 +217,7 @@ class eppContact {
      * @return void
      */
     public function setFax($fax) {
-        $this->fax = $this->validatePhoneNumber($fax);
+        $this->fax = $fax;
     }
 
     /**
@@ -274,13 +274,5 @@ class eppContact {
         return uniqid('MRG');
     }
 
-    public static function generateRandomString($length = 10) {
-        $characters = '123456789ABCDEFGHIJKLMNPQRSTUVWXYZ';
-        $charactersLength = strlen($characters);
-        $randomString = '';
-        for ($i = 0; $i < $length; $i++) {
-            $randomString .= $characters[rand(0, $charactersLength - 1)];
-        }
-        return $randomString;
-    }
+
 }
