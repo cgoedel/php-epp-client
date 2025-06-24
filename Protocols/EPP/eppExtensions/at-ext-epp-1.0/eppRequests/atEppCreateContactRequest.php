@@ -120,11 +120,11 @@ class atEppCreateContactRequest extends eppCreateContactRequest {
      * @param $contactdisclose
      * @param atEppContact $contact
      */
-    protected function setAtContactDisclosure($contactdisclose,atEppContact $contact)
+    protected function setAtContactDisclosure($contactdisclose, atEppContact $contact)
     {
         if (!is_null($contactdisclose)) {
             $disclose = $this->createElement('contact:disclose');
-            $disclose->setAttribute('flag', $contactdisclose);
+            $disclose->setAttribute('flag', sprintf('%b', $contactdisclose));
 
             $disclPhone = $this->createElement('contact:voice');
             if ($contactdisclose == 1) {
@@ -150,8 +150,4 @@ class atEppCreateContactRequest extends eppCreateContactRequest {
             $this->contactobject->appendChild($disclose);
         }
     }
-
-
-
-
 }
