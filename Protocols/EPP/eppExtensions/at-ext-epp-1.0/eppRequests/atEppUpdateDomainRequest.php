@@ -109,7 +109,7 @@ class atEppUpdateDomainRequest extends eppUpdateDomainRequest
      * @param $updateInfo
      */
     protected function rewriteAuthorisationCode($updateInfo){
-        if (strlen($updateInfo->getAuthorisationCode())) {
+        if ($updateInfo && strlen($updateInfo->getAuthorisationCode())) {
             $authInfoList_ = $this->getElementsByTagName("update")->item(0)->getElementsByTagName("domain:authInfo");
             $pwdList = $authInfoList_->item(0)->getElementsByTagName("domain:pw");
 
@@ -118,7 +118,6 @@ class atEppUpdateDomainRequest extends eppUpdateDomainRequest
 
             $authInfoList_->item(0)->removeChild($pwdList->item(0));
             $authInfoList_->item(0)->appendChild($pw);
-
         }
     }
 }
