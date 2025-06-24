@@ -7,12 +7,15 @@ class atEppCreateContactRequest extends eppCreateContactRequest {
 
     protected $atEppExtensionChain = null;
 
-    function __construct($createinfo,atEppExtensionChain $atEppExtensionChain=null) {
+    function __construct($createinfo, atEppExtensionChain $atEppExtensionChain = null) {
+        if (null === $atEppExtensionChain) {
+            // this is required, or else an invalid request will be generated, causing an error to be returned by the Nic.at API
+            $atEppExtensionChain = new atEppCreateContactExtension($createinfo);
+        }
+
         $this->atEppExtensionChain = $atEppExtensionChain;
-       parent::__construct($createinfo);
-       $this->addSessionId();
-
-
+        parent::__construct($createinfo);
+        $this->addSessionId();
     }
 
 
