@@ -167,14 +167,15 @@ class tmchClaimData extends \DOMDocument {
      * @param null $options
      * @return mixed
      */
-    public function saveXML(\DOMNode $node = null, $options = null) {
+    #[\ReturnTypeWillChange]
+    public function saveXML(?\DOMNode $node = null, $options = null) {
         return str_replace("\t", '  ', parent::saveXML($node, LIBXML_NOEMPTYTAG));
     }
 
 
     public function xPath() {
         $xpath = new \DOMXpath($this);
-        $this->publicnamespace = $this->documentElement->lookupNamespaceUri(NULL);
+        $this->publicnamespace = $this->documentElement->lookupNamespaceUri(null);
         $xpath->registerNamespace('tmNotice', $this->publicnamespace);
         return $xpath;
     }

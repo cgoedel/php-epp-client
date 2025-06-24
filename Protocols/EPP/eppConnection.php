@@ -120,10 +120,21 @@ class eppConnection {
     protected $launchphase = null;
 
     /**
+     * @var resource
+     */
+    protected $sslContext = null;
+
+    /**
      * Path to certificate file
      * @var string
      */
     protected $local_cert_path = null;
+
+    /**
+     * Path to private key file
+     * @var string
+     */
+    protected $local_pk_path = null;
 
     /**
      * Password of certificate file
@@ -149,6 +160,11 @@ class eppConnection {
      */
     protected $verify_peer_name = true;
 
+    /**
+     * @var bool Using stream_set_blocking true or false on connections
+     */
+    protected $blocking = false;
+
     protected $logentries = array();
 
     protected $checktransactionids = true;
@@ -167,6 +183,11 @@ class eppConnection {
      * @var null|string
      */
     protected $connectionComment = null;
+
+    /**
+     * @var null|string
+     */
+    protected $sourceIpAddr = null;
 
     /**
      * @var null|string
@@ -291,18 +312,21 @@ class eppConnection {
      * @param string $certificatepath
      * @param string | null $certificatepassword
      * @param bool $selfsigned
+     * @param string | null $certificatekeypath
      *
      */
-    public function enableCertification($certificatepath, $certificatepassword, $selfsigned = false) {
+    public function enableCertification($certificatepath, $certificatepassword, $selfsigned = false, $certificatekeypath = null) {
         $this->local_cert_path = $certificatepath;
         $this->local_cert_pwd = $certificatepassword;
         $this->allow_self_signed = $selfsigned;
+        $this->local_pk_path = $certificatekeypath;
     }
 
     public function disableCertification() {
         $this->local_cert_path = null;
         $this->local_cert_pwd = null;
         $this->allow_self_signed = null;
+        $this->local_pk_path = null;
     }
 
 
@@ -336,40 +360,51 @@ class eppConnection {
         if ($port) {
             $this->port = $port;
         }
-        $context = stream_context_create();
-        stream_context_set_option($context, 'ssl','verify_peer', $this->verify_peer);
-        stream_context_set_option($context, 'ssl', 'verify_peer_name', $this->verify_peer_name);
-        if ($this->local_cert_path) {
-            stream_context_set_option($context, 'ssl', 'local_cert', $this->local_cert_path);
-            if (isset($this->local_cert_pwd) && (strlen($this->local_cert_pwd)>0)) {
-                stream_context_set_option($context, 'ssl', 'passphrase', $this->local_cert_pwd);
+        if (!$this->sslContext) {
+            $context = stream_context_create();
+            stream_context_set_option($context, 'ssl', 'verify_peer', $this->verify_peer);
+            stream_context_set_option($context, 'ssl', 'verify_peer_name', $this->verify_peer_name);
+            if ($this->local_cert_path) {
+                stream_context_set_option($context, 'ssl', 'local_cert', $this->local_cert_path);
+                if (isset($this->local_pk_path) && (strlen($this->local_pk_path)>0)) {
+                    stream_context_set_option($context, 'ssl', 'local_pk', $this->local_pk_path);
+                }
+                if (isset($this->local_cert_pwd) && (strlen($this->local_cert_pwd)>0)) {
+                    stream_context_set_option($context, 'ssl', 'passphrase', $this->local_cert_pwd);
+                }
+                if (isset($this->allow_self_signed)) {
+                    stream_context_set_option($context, 'ssl', 'allow_self_signed', $this->allow_self_signed);
+                    stream_context_set_option($context, 'ssl', 'verify_peer', false);
+                } else {
+                    stream_context_set_option($context, 'ssl', 'verify_peer', $this->verify_peer);
+                }
             }
-            if (isset($this->allow_self_signed)) {
-                stream_context_set_option($context, 'ssl', 'allow_self_signed', $this->allow_self_signed);
-                stream_context_set_option($context, 'ssl', 'verify_peer', false);
-            } else {
-                stream_context_set_option($context, 'ssl', 'verify_peer', $this->verify_peer);
+            if ($this->sourceIpAddr && filter_var($this->sourceIpAddr, FILTER_VALIDATE_IP)) {
+                stream_context_set_option($context, 'socket', 'bindto', $this->sourceIpAddr . ":0");
+            } else if (defined("METAREGISTRAR_EPP_SOURCE_IPADDR") && filter_var(METAREGISTRAR_EPP_SOURCE_IPADDR, FILTER_VALIDATE_IP)) {
+                stream_context_set_option($context, 'socket', 'bindto', METAREGISTRAR_EPP_SOURCE_IPADDR . ":0");
             }
+            $this->sslContext = $context;
         }
-        $this->connection = stream_socket_client($this->hostname.':'.$this->port, $errno, $errstr, $this->timeout, STREAM_CLIENT_CONNECT, $context);
+        $this->connection = stream_socket_client($this->hostname.':'.$this->port, $errno, $errstr, $this->timeout, STREAM_CLIENT_CONNECT, $this->sslContext);
         if (is_resource($this->connection)) {
-            stream_set_blocking($this->connection, false);
+            stream_set_blocking($this->connection, $this->blocking);
             stream_set_timeout($this->connection, $this->timeout);
             if ($errno == 0) {
                 $meta = stream_get_meta_data($this->connection);
                 if (isset($meta['crypto'])) {
-                    $this->writeLog("Stream opened with protocol ".$meta['crypto']['protocol'].", cipher ".$meta['crypto']['cipher_name'].", ".$meta['crypto']['cipher_bits']." bits ".$meta['crypto']['cipher_version'],"Connection made");
+                    $this->writeLog("Stream opened to ".$this->getHostname()." port ".$this->getPort()." with protocol ".$meta['crypto']['protocol'].", cipher ".$meta['crypto']['cipher_name'].", ".$meta['crypto']['cipher_bits']." bits ".$meta['crypto']['cipher_version'],"Connection made");
                 } else {
-                    $this->writeLog("Stream opened","Connection made");
+                    $this->writeLog("Stream opened to ".$this->getHostname()." port ".$this->getPort(),"Connection made");
                 }
                 $this->connected = true;
                 $this->read();
             }
             return $this->connected;
-        } else {
-            $this->writeLog("Connection could not be opened: $errno $errstr","ERROR");
-            return false;
         }
+
+        $this->writeLog("Connection could not be opened: $errno $errstr","ERROR");
+        return false;
 
     }
 
@@ -399,13 +434,17 @@ class eppConnection {
      * @throws eppException
      */
     public function logout() {
-        $logout = new eppLogoutRequest();
-        if ($response = $this->request($logout)) {
-            $this->writeLog("Logged out","LOGOUT");
-            $this->loggedin = false;
-            return true;
+        if ($this->loggedin) {
+            $logout = new eppLogoutRequest();
+            if ($response = $this->request($logout)) {
+                $this->writeLog("Logged out","LOGOUT");
+                $this->loggedin = false;
+                return true;
+            } else {
+                throw new eppException("Logout failed: ".$response->getResultMessage(),0,null,null,$logout->saveXML());
+            }
         } else {
-            throw new eppException("Logout failed: ".$response->getResultMessage(),0,null,null,$logout->saveXML());
+            return true;
         }
     }
 
@@ -437,6 +476,79 @@ class eppConnection {
     }
 
     /**
+     * Enable the readsleep functionality
+     * @var boolean
+     */
+    private $enableReadSleep = true;
+
+    /**
+     * The initial wait time in microseconds between read attempts
+     * @var integer
+     */
+    private $readSleepTimeInitialValue = 100;
+
+    /**
+     * The maximum time between read attempts in microseconds
+     * @var integer
+     */
+    private $readSleepTimeLimit = 100000;
+
+    /**
+     * When using the readsleep incrementor, increment the sleep time with incrementor value 1 until the
+     * the sleep time exceeds this value is exceeded then switch to the second incrementor value
+     * @var integer
+     */
+    private $readSleepTimeIncrementorLimit = 10000;
+
+    /**
+     * Enable the read sleep incrementor
+     * @var boolean
+     */
+    private $readSleepTimeIncrementEnabled = true;
+
+    /**
+     * The initial incrementor value
+     * @var integer
+     */
+    private $readSleepTimeIncrementor1 = 1000;
+
+    /**
+     * The second incrementor value
+     * @var integer
+     */
+    private $readSleepTimeIncrementor2 = 100;
+
+    /**
+     * Allows the ability turn off or tweak the response read timings.
+     * Disabling the readSleep will result in high CPU usage when waiting for a response from the epp server
+     *
+     * @param boolean $enableReadSleep
+     * @param boolean $incrementorEnabled
+     * @param integer  $initialReadSleepTime
+     * @param integer  $limit
+     * @param integer  $readSleepTimeIncrementorLimit
+     * @param integer  $incrementor1
+     * @param integer  $incrementor2
+     */
+    public function setReadTimings(
+        $enableReadSleep = true,
+        $incrementorEnabled = true,
+        $initialReadSleepTime = 100,
+        $limit = 100000,
+        $readSleepTimeIncrementorLimit = 10000,
+        $incrementor1 = 1000,
+        $incrementor2 = 100
+    ) {
+        $this->enableReadSleep = $enableReadSleep;
+        $this->readSleepTimeInitialValue = $initialReadSleepTime;
+        $this->readSleepTimeLimit = $limit;
+        $this->readSleepTimeIncrementorLimit = $readSleepTimeIncrementorLimit;
+        $this->readSleepTimeIncrementEnabled = $incrementorEnabled;
+        $this->readSleepTimeIncrementor1 = $incrementor1;
+        $this->readSleepTimeIncrementor2 = $incrementor2;
+    }
+
+    /**
      * This will read 1 response from the connection if there is one
      * @param boolean $nonBlocking to prevent the blocking of the thread in case there is nothing to read and not wait for the timeout
      * @return string
@@ -462,17 +574,38 @@ class eppConnection {
                 $readLength = 4;
                 //$readbuffer = "";
                 $read = "";
+                $useSleep = $this->enableReadSleep;
+                $readSleepTime = $this->readSleepTimeInitialValue;
+                $readSleepTimeLimit = $this->readSleepTimeLimit;
+                $readSleepTimeIncrementorLimit = $this->readSleepTimeIncrementorLimit;
+                $readSleepTimeIncrementEnabled = $this->readSleepTimeIncrementEnabled;
+                $readSleepTimeIncrementor1 = $this->readSleepTimeIncrementor1;
+                $readSleepTimeIncrementor2 = $this->readSleepTimeIncrementor2;
+//                $loops = 0;
                 while ($readLength > 0) {
+//                    $loops++;
                     if ($readbuffer = fread($this->connection, $readLength)) {
                         $readLength = $readLength - strlen($readbuffer);
                         $read .= $readbuffer;
                         $time = time() + $this->timeout;
+                    } elseif ($useSleep) {
+                        usleep($readSleepTime);
+                        if ($readSleepTimeIncrementEnabled) {
+                            if ($readSleepTime < $readSleepTimeLimit) {
+                                if ($readSleepTime > $readSleepTimeIncrementorLimit) {
+                                    $readSleepTime += $readSleepTimeIncrementor2;
+                                } else {
+                                    $readSleepTime += $readSleepTimeIncrementor1;
+                                }
+                            }
+                        }
                     }
                     //Check if timeout occured
                     if (time() >= $time) {
                         return false;
                     }
                 }
+                //$this->writeLog("Used $loops loops to read initial 4 bytes","READ");
                 //$this->writeLog("Read 4 bytes for integer. (read: " . strlen($read) . "):$read","READ");
                 $length = $this->readInteger($read) - 4;
                 //$this->writeLog("Reading next: $length bytes","READ");
@@ -723,6 +856,7 @@ class eppConnection {
         if (!$response) {
             throw new eppException("No valid response from server",0,null,null,$content);
         }
+        $content->preserveWhiteSpace = false;
         $content->formatOutput = true;
         $this->writeLog($content->saveXML(null, LIBXML_NOEMPTYTAG),"WRITE");
 
@@ -742,7 +876,9 @@ class eppConnection {
                 set_error_handler(array($this,'HandleXmlError'));
                 if ($response->loadXML($xml)) {
                     restore_error_handler();
-                    $this->writeLog($response->saveXML(null, LIBXML_NOEMPTYTAG), "READ");
+                    $response->preserveWhiteSpace = false;
+                    $response->formatOutput = true;
+                    $this->writeLog($response->formatContents(), "READ");
                     $clienttransid = $response->getClientTransactionId();
                     if (($this->checktransactionids) && ($clienttransid) && ($clienttransid != $requestsessionid) && ($clienttransid!='{{clTRID}}')) {
                         throw new eppException("Client transaction id $requestsessionid does not match returned $clienttransid",0,null,null,$xml);
@@ -759,7 +895,6 @@ class eppConnection {
                     restore_error_handler();
                 }
             } else {
-
                 throw new eppException('Empty XML document when receiving data!');
             }
         } else {
@@ -846,6 +981,14 @@ class eppConnection {
         $this->port = $port;
     }
 
+    public function getSslContext() {
+        return $this->sslContext;
+    }
+
+    public function setSslContext($sslContext) {
+        $this->sslContext = $sslContext;
+    }
+
     public function setVerifyPeer($verify_peer) {
         $this->verify_peer = $verify_peer;
     }
@@ -871,8 +1014,12 @@ class eppConnection {
         $this->retry = $retry;
     }
 
-    public function addDefaultNamespace($xmlns, $namespace) {
-        $this->defaultnamespace[$namespace] = 'xmlns:' . $xmlns;
+    public function addDefaultNamespace($xmlns, $namespace, $addxmlns=true) {
+        if ($addxmlns) {
+            $this->defaultnamespace[$namespace] = 'xmlns:' . $xmlns;
+        } else {
+            $this->defaultnamespace[$namespace] = $xmlns;
+        }
     }
 
     public function getDefaultNamespaces() {
@@ -889,6 +1036,14 @@ class eppConnection {
 
     public function setLanguage($language) {
         $this->language = $language;
+    }
+
+    public function setBlocking($blocking) {
+        $this->blocking = $blocking;
+    }
+
+    public function getBlocking() {
+        return $this->blocking;
     }
 
     public function getResponses() {
@@ -985,7 +1140,6 @@ class eppConnection {
      * Enables logging
      */
     private function enableLogging() {
-        date_default_timezone_set("Europe/Amsterdam");
         $this->logging = true;
     }
 
@@ -1016,14 +1170,6 @@ class eppConnection {
                 $this->enableLogging();
             }
         }
-
-        if (array_key_exists('certificatefile',$result) && array_key_exists('certificatepassword',$result)) {
-            // Enter the path to your certificate and the password here
-            $this->enableCertification($result['certificatefile'], $result['certificatepassword']);
-        } elseif (array_key_exists('certificatefile',$result)) {
-            // Enter the path to your certificate without password
-            $this->enableCertification($result['certificatefile'], null);
-        }
         if (array_key_exists('verifypeer',$result)) {
             if (($result['verifypeer']=='true') || ($result['verifypeer']=='yes') || ($result['verifypeer']=='1')) {
                 $this->verify_peer = true;
@@ -1045,6 +1191,14 @@ class eppConnection {
                 $this->allow_self_signed = false;
             }
         }
+        if (array_key_exists('certificatefile',$result)) {
+            $this->enableCertification(
+                $result['certificatefile'],
+                array_key_exists('certificatepassword',$result) ? $result['certificatepassword'] : null,
+                $this->allow_self_signed,
+                array_key_exists('certificatekey',$result) ? $result['certificatekey'] : null
+            );
+        }
 
         $this->settingsloaded = true;
         return true;
@@ -1056,7 +1210,7 @@ class eppConnection {
      * @return array
      * @throws eppException
      */
-    static function loadSettings(?string $directory, $settingsfile) {
+    static function loadSettings($directory, $settingsfile) {
         if ($directory) {
             $path = $directory . '/' . $settingsfile;
         } else {
@@ -1110,12 +1264,16 @@ class eppConnection {
             $text = $this->hideTextBetween($text,'<clID>','</clID>');
             // Hide password in the logging
             $text = $this->hideTextBetween($text,'<pw>','</pw>');
-            // Hide password in the logging
             $text = $this->hideTextBetween($text,'<pw><![CDATA[',']]></pw>');
             // Hide new password in the logging
             $text = $this->hideTextBetween($text,'<newPW>','</newPW>');
-            // Hide new password in the logging
             $text = $this->hideTextBetween($text,'<newPW><![CDATA[',']]></newPW>');
+            // Hide domain password in the logging
+            $text = $this->hideTextBetween($text,'<domain:pw>','</domain:pw>');
+            $text = $this->hideTextBetween($text,'<domain:pw><![CDATA[',']]></domain:pw>');
+            // Hide contact password in the logging
+            $text = $this->hideTextBetween($text,'<contact:pw>','</contact:pw>');
+            $text = $this->hideTextBetween($text,'<contact:pw><![CDATA[',']]></contact:pw>');
             //echo "-----".date("Y-m-d H:i:s")."-----".$text."-----end-----\n";
             $log = "-----" . $action . "-----" . date("Y-m-d H:i:s") . "-----\n" . $text . "\n-----END-----" . date("Y-m-d H:i:s") . "-----\n";
             $this->logentries[] = $log;
@@ -1146,6 +1304,15 @@ class eppConnection {
      */
     public function setConnectionComment($connectionComment) {
         $this->connectionComment = $connectionComment;
+        return $this;
+    }
+
+    /**
+     * @param null|string $sourceIpAddr
+     * @return eppConnection
+     */
+    public function setsourceIpAddr($sourceIpAddr) {
+        $this->sourceIpAddr = $sourceIpAddr;
         return $this;
     }
 

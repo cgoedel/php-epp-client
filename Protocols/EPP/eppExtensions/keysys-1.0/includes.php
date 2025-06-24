@@ -9,3 +9,12 @@ $this->addCommandResponse('Metaregistrar\EPP\rrpproxyEppWhoisPrivacyRequest', 'M
 
 include_once(dirname(__FILE__) . '/eppRequests/rrpproxyEppTrusteeRequest.php');
 $this->addCommandResponse('Metaregistrar\EPP\rrpproxyEppTrusteeRequest', 'Metaregistrar\EPP\eppUpdateDomainResponse');
+
+include_once(dirname(__FILE__) . '/eppRequests/rrpproxyEppRenewalmodeRequest.php');
+$this->addCommandResponse('Metaregistrar\EPP\rrpproxyEppRenewalmodeRequest', 'Metaregistrar\EPP\eppUpdateDomainResponse');
+
+include_once(dirname(__FILE__) . '/eppRequests/rrpproxyEppTransferDomainRequest.php');
+$this->addCommandResponse('Metaregistrar\EPP\rrpproxyEppTransferDomainRequest', 'Metaregistrar\EPP\eppTransferResponse');
+
+include_once(dirname(__FILE__) . '/eppResponses/rrpproxyEppInfoContactResponse.php');
+$this->addCommandResponse('Metaregistrar\EPP\eppInfoContactRequest', 'Metaregistrar\EPP\rrpproxyEppInfoContactResponse');

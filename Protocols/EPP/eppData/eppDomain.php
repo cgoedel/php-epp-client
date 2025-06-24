@@ -76,7 +76,7 @@ class eppDomain {
 
     /**
      *
-     * @param eppContact $registrant
+     * @param eppContactHandle|string $registrant
      * @param string $authorisationCode
      */
     public function __construct($domainname, $registrant = null, $contacts = null, $hosts = null, $period = 0, $authorisationCode = null) {
@@ -331,17 +331,12 @@ class eppDomain {
      * @return void
      */
     public function setAuthorisationCode($authorisationCode) {
-        if ($authorisationCode) {
-            $this->authorisationCode = htmlspecialchars($authorisationCode, ENT_COMPAT, "UTF-8");
-        } else {
-            $this->authorisationCode = $authorisationCode;
-        }
-
+        $this->authorisationCode = $authorisationCode;
     }
 
     /**
      *
-     * @return string
+     * @return string|null
      */
     public function getAuthorisationCode() {
         return $this->authorisationCode;
@@ -353,7 +348,7 @@ class eppDomain {
      * @return void
      */
     public function setPassword($password) {
-        $this->authorisationCode = htmlspecialchars($password, ENT_COMPAT, "UTF-8");
+        $this->setAuthorisationCode($password);
     }
 
     /**
@@ -366,7 +361,7 @@ class eppDomain {
     
     /**
      *
-     * @param string $status
+     * @param string|eppStatus $status
      */
     public function addStatus($status) {
         $this->statuses[] = $status;
@@ -374,10 +369,32 @@ class eppDomain {
 
     /**
      *
-     * @return string
+     * @param bool $fullobject
+     * @return array
+     * 
      */
-    public function getStatuses() {
-        return $this->statuses;
+    public function getStatuses($fullobjects=false) {
+        $return_statuses=[];
+
+        if ($fullobjects) { // return full eppStatus Objects
+            foreach ($this->statuses as $status) {
+                if  ($status instanceof eppStatus) {
+                    $return_statuses[]=$status;
+                } else {
+                    $return_statuses[]=new eppStatus($status);
+                }
+            }
+        }  else {  // return just a list of statuses
+            foreach ($this->statuses as $status) {
+                if  ($status instanceof eppStatus) {
+                    $return_statuses[]=$status->getStatusname();
+                } else {
+                    $return_statuses[]=$status;
+                }
+            }
+        } 
+
+        return $return_statuses;
     }
 
 

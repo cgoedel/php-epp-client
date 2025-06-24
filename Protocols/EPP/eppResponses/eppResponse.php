@@ -79,7 +79,7 @@ class eppResponse extends \DOMDocument {
     /*
      * @var array of supported versions
      */
-    public ?string $version;
+    public $versions;
 
     public $originalrequest;
     /**
@@ -109,12 +109,37 @@ class eppResponse extends \DOMDocument {
         return false;
     }
 
-    public function saveXML(\DOMNode $node = NULL, $options = NULL) {
+    public function saveXML(?\DOMNode $node = NULL, $options = NULL): string {
         return str_replace("\t", '  ', parent::saveXML($node, LIBXML_NOEMPTYTAG));
     }
 
+    public function formatContents() {
+        $result = '';
+        $spacing = 2;
+        $text = $this->saveXML();
+        $text = str_replace("\n",'',$text);
+        $text = str_replace('><',">\n<",$text);
+        $text = str_replace(' <'," \n<",$text);
+        $output = explode("\n",$text);
+        $spaces = 0;
+        foreach ($output as $line) {
+            if (strpos($line,'</')===0) {
+                $spaces -= $spacing;
+            }
+            $result .= substr('                          ',0,$spaces).$line."\n";
+            $spaces += $spacing;
+            if (strpos($line,'?>')!==false) {
+                $spaces -= $spacing;
+            }
+            if (strpos($line,'</')!==false) {
+                $spaces -= $spacing;
+            }
+        }
+        return $result;
+    }
+
     public function dumpContents() {
-        echo $this->saveXML();
+        echo $this->formatContents();
     }
 
     /**
@@ -177,15 +202,15 @@ class eppResponse extends \DOMDocument {
                 $errorstring .= '; ' . $id;
             }
             $resultreason = $this->getResultReason();
-            if (strlen($resultreason)) {
+            if (is_string($resultreason) && strlen($resultreason)) {
                 $errorstring .= ' (' . $resultreason . ')';
             }
             if ((is_array($this->exceptions)) && (count($this->exceptions)>0)) {
                 foreach ($this->exceptions as $exceptionhandler) {
-                    throw new $exceptionhandler($errorstring, $resultcode, null, $resultreason, $this->saveXML());
+                    throw new $exceptionhandler($errorstring, $resultcode, null, $resultreason, $this->saveXML(), $this);
                 }
             } else {
-                throw new eppException($errorstring, $resultcode, null, $resultreason, $this->saveXML());
+                throw new eppException($errorstring, $resultcode, null, $resultreason, $this->saveXML(), $this);
             }
 
         } else {
@@ -212,7 +237,7 @@ class eppResponse extends \DOMDocument {
 
     /**
      *
-     * @return string|null
+     * @return null|string
      */
     public function getResultCode() {
         $result = $this->queryPath('/epp:epp/epp:response/epp:result/@code');
@@ -350,7 +375,7 @@ class eppResponse extends \DOMDocument {
      */
     public function xPath() {
         $xpath = new \DOMXpath($this);
-        $this->defaultnamespace = $this->documentElement->lookupNamespaceUri(NULL);
+        $this->defaultnamespace = $this->documentElement->lookupNamespaceUri(null);
         $xpath->registerNamespace('epp', $this->defaultnamespace);
         if (is_array($this->xpathuri)) {
             foreach ($this->xpathuri as $uri => $namespace) {
@@ -390,6 +415,9 @@ class eppResponse extends \DOMDocument {
         }
     }
 
+    /**
+     * @param $exceptionhandler
+     */
     public function addException($exceptionhandler) {
         $this->exceptions[] = $exceptionhandler;
     }
