@@ -13,9 +13,6 @@ class atEppUpdateContactRequest extends eppUpdateContactRequest
         $this->addSessionId();
     }
 
-
-
-
     /**
      *
      * @param string $contactid
@@ -124,10 +121,10 @@ class atEppUpdateContactRequest extends eppUpdateContactRequest
             $element->appendChild($postalinfo);
         }
 
-            $element->appendChild($this->createElement('contact:voice', $contact->getVoice()));
+        $element->appendChild($this->createElement('contact:voice', $contact->getVoice()));
 
 
-            $element->appendChild($this->createElement('contact:fax', $contact->getFax()));
+        $element->appendChild($this->createElement('contact:fax', $contact->getFax()));
 
         if (strlen($contact->getEmail())) {
             $element->appendChild($this->createElement('contact:email', $contact->getEmail()));
@@ -147,7 +144,7 @@ class atEppUpdateContactRequest extends eppUpdateContactRequest
 
         if (!is_null($contact->getDisclose())) {
             $disclose = $this->createElement('contact:disclose');
-            $disclose->setAttribute('flag',$contact->getDisclose());
+            $disclose->setAttribute('flag', sprintf('%b', $contact->getDisclose()));
 
             $disclPhone = $this->createElement('contact:voice');
             if ($contact->getDisclose()==1) {

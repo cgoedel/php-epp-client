@@ -1,6 +1,8 @@
 <?php
 namespace Metaregistrar\EPP;
 
+use DOMException;
+
 class atEppCreateContactRequest extends eppCreateContactRequest {
 
     use atEppCommandTrait;
@@ -112,15 +114,14 @@ class atEppCreateContactRequest extends eppCreateContactRequest {
         $this->contactobject->appendChild($postalinfo);
     }
 
-
-
     /**
      * at  voice-, fax-, email disclosure
      *
      * @param $contactdisclose
      * @param atEppContact $contact
+     * @throws DOMException
      */
-    protected function setAtContactDisclosure($contactdisclose, atEppContact $contact)
+    protected function setAtContactDisclosure($contactdisclose, atEppContact $contact): void
     {
         if (!is_null($contactdisclose)) {
             $disclose = $this->createElement('contact:disclose');
