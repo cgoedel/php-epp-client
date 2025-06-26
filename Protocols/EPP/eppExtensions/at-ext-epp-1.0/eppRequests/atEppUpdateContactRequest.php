@@ -94,9 +94,9 @@ class atEppUpdateContactRequest extends eppUpdateContactRequest
             if(!empty($name)) {
                 $postalinfo->appendChild($this->createElement('contact:name', $name));
             }
-            if(!empty($organisation)) {
-                $postalinfo->appendChild($this->createElement('contact:org', $organisation));
-            }
+
+            $postalinfo->appendChild($this->createElement('contact:org', $organisation));
+
             if ((($postal->getStreetCount()) > 0) || strlen($postal->getCity()) || strlen($postal->getProvince()) || strlen($postal->getZipcode()) || strlen($postal->getCountrycode())) {
                 $postaladdr = $this->createElement('contact:addr');
                 if (($count = $postal->getStreetCount()) > 0) {
@@ -138,7 +138,6 @@ class atEppUpdateContactRequest extends eppUpdateContactRequest
 
     }
 
-
     protected function setAtContactDisclosure(\domElement $element,atEppContact $contact)
     {
 
@@ -172,5 +171,4 @@ class atEppUpdateContactRequest extends eppUpdateContactRequest
 
 
     }
-
 }
