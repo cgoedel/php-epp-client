@@ -246,7 +246,7 @@ trait atEppResponseTrait
 
             $extendedReason_ = json_encode($this->getExtensionResult());
 
-            throw new eppException($errorstring, $resultcode, null, $extendedReason_, $id);
+            throw new eppException($errorstring, $resultcode, null, $extendedReason_, $id, $this);
         } else {
             return true;
         }
