@@ -48,54 +48,7 @@ class atEppContact extends eppContact {
     public function __construct($postalInfo = null,$personType=self::PERS_TYPE_UNSPECIFIED, $email = null, $voice = null, $fax = null,$whoisHideEmail=false,$whoisHidePhone=false,$whoisHideFax=false, $password = null, $status = null) {
         parent::__construct($postalInfo , $email , $voice , $fax , $password , $status );
         $this->setPersonType($personType);
-        $this->setWhoisHideEmail($whoisHideEmail);
-        $this->setWhoisHideFax($whoisHideFax);
-        $this->setWhoisHidePhone($whoisHidePhone);
     }
-
-    private function updateDiscloseFlag(): void
-    {
-        $this->setDisclose(
-            ($this->whoisHidePhone ? !$this->whoisHidePhone : 0)
-            || ($this->whoisHideFax ? !$this->whoisHideFax : 0)
-            || ($this->whoisHideEmail ? !$this->whoisHideEmail : 0)
-        );
-    }
-
-    private function setWhoisHidePhone($whoisHidePhone=false)
-    {
-        $this->whoisHidePhone = $whoisHidePhone ? 1 : 0;
-        $this->updateDiscloseFlag();
-    }
-
-    private function setWhoisHideFax($whoisHideFax=false)
-    {
-        $this->whoisHideFax = $whoisHideFax? 1 : 0;
-        $this->updateDiscloseFlag();
-    }
-
-    private function setWhoisHideEmail($whoisHideEmail=false)
-    {
-        $this->whoisHideEmail = $whoisHideEmail? 1 : 0;
-        $this->updateDiscloseFlag();
-    }
-
-
-    public function getWhoisHidePhone()
-    {
-        return $this->whoisHidePhone;
-    }
-
-    public function getWhoisHideFax()
-    {
-        return $this->whoisHideFax;
-    }
-
-    public function getWhoisHideEmail()
-    {
-        return  $this->whoisHideEmail;
-    }
-
 
     private function setPersonType($personType)
     {
@@ -110,8 +63,6 @@ class atEppContact extends eppContact {
     {
         return $this->personType;
     }
-
-
 
     /**
      *
