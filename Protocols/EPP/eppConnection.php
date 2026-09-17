@@ -554,20 +554,25 @@ class eppConnection {
      * @return string
      * @throws eppException
      */
-    public function read($nonBlocking=false) {
+    public function read($nonBlocking = false) {
         $content = '';
         $time = time() + $this->timeout;
         $read = "";
+
         while ((!isset ($length)) || ($length > 0)) {
             if (feof($this->connection)) {
                 $this->loggedin = false;
                 $this->connected = false;
-                throw new eppException ('Unexpected closed connection by remote host...',0,null,null,$read);
+
+                $this->writeLog($errorMessage = 'Connection closed by remote host','READ');
+                throw new eppException($errorMessage,0,null,null, $read);
             }
+
             //Check if timeout occured
             if (time() >= $time) {
                 return false;
             }
+
             //If we dont know how much to read we read the first few bytes first, these contain the content-length
             //of whats to come
             if ((!isset($length)) || ($length == 0)) {
@@ -811,16 +816,19 @@ class eppConnection {
     public function writeandread($content) {
         $requestsessionid = $content->getSessionId();
         $namespaces = $this->getDefaultNamespaces();
+
         if (is_array($namespaces)) {
             foreach ($namespaces as $id => $namespace) {
                 $content->addExtension($id, $namespace);
             }
         }
+
         // add the connectionComment to the request's epp element
         if(is_string($this->connectionComment))
         {
             $content->epp->appendChild($content->createComment($this->connectionComment));
         }
+
         /*
          * $content->login is only set if this is an instance or a sub-instance of an eppLoginRequest
          */
@@ -841,6 +849,7 @@ class eppConnection {
             // Add services and extensions to this content
             $content->addServices($this->getServices(), $this->getExtensions());
         }
+
         /*
          * $content->hello is only set if this is an instance or a sub-instance of an eppHelloRequest
          */
@@ -851,6 +860,7 @@ class eppConnection {
             $content->addNamespaces($this->getServices());
             $content->addNamespaces($this->getExtensions());
         }
+
         $response = $this->createResponse($content);
         /* @var $response eppResponse */
         if (!$response) {
@@ -895,11 +905,14 @@ class eppConnection {
                     restore_error_handler();
                 }
             } else {
-                throw new eppException('Empty XML document when receiving data!');
+                $this->writeLog($errorMessage = 'Empty XML document when receiving data!', 'READ');
+                throw new eppException($errorMessage);
             }
         } else {
-            throw new eppException('Error writing content',0,null,null,$content);
+            $this->writeLog($errorMessage = 'Error writing content', 'WRITE');
+            throw new eppException($errorMessage,0,null,null, $content);
         }
+
         return null;
     }
 
@@ -1258,7 +1271,7 @@ class eppConnection {
         }
     }
 
-    protected function writeLog($text,$action) {
+    protected function writeLog($text, $action) {
         if ($this->logging) {
             // Hide userid in the logging
             $text = $this->hideTextBetween($text,'<clID>','</clID>');

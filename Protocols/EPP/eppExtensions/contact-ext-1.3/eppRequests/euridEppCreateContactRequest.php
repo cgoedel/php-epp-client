@@ -35,16 +35,20 @@ class euridEppCreateContactRequest extends eppCreateContactRequest {
         if(!empty($createinfo->getContactExtType())) {
             $create->appendChild($this->createElement('contact-ext:type', $createinfo->getContactExtType()));
         }
+
         if(!empty($createinfo->getContactExtVat())) {
             $create->appendChild($this->createElement('contact-ext:vat', $createinfo->getContactExtVat()));
         }
+
         $org = false;
         if (is_string($createinfo->getPostalInfo(0)->getOrganisationName())) {
             if (strlen($createinfo->getPostalInfo(0)->getOrganisationName()) > 0) {
                 $org = true;
             }
         }
+
         $create->appendChild($this->createElement('contact-ext:lang', $createinfo->getContactExtLang()));
+
         if ($org) {
             $create->appendChild($this->createElement('contact-ext:naturalPerson', 'false'));
         } else {

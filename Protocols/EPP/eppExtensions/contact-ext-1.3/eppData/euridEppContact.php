@@ -83,7 +83,7 @@ class euridEppContact extends eppContact {
         if (in_array($country, $this->acceptedCitizenshipCodes)) {
             $this->countryOfCitizenship = $country;
         } else {
-            throw new \Exception('Contact country of citizenship not supported.');
+            throw new \Exception("Contact country of citizenship ($country) not supported");
         }
     }
 
