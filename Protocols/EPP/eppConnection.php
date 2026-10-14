@@ -398,7 +398,8 @@ class eppConnection {
                     $this->writeLog("Stream opened to ".$this->getHostname()." port ".$this->getPort(),"Connection made");
                 }
                 $this->connected = true;
-                $this->read();
+                $content = $this->read();
+				$this->writeLog($content,"GREETING");
             }
             return $this->connected;
         }
@@ -492,6 +493,11 @@ class eppConnection {
      * @var integer
      */
     private $readSleepTimeLimit = 100000;
+
+    /**
+     * @var integer
+     */
+    private $maxMessageLength = 1000000;
 
     /**
      * When using the readsleep incrementor, increment the sleep time with incrementor value 1 until the
@@ -615,7 +621,7 @@ class eppConnection {
                 $length = $this->readInteger($read) - 4;
                 //$this->writeLog("Reading next: $length bytes","READ");
             }
-            if ($length > 1000000) {
+            if ($length > $this->maxMessageLength) {
                 throw new eppException("Packet size is too big: $length. Closing connection",0,null,null,$read);
             }
             //We know the length of what to read, so lets read the stuff
@@ -764,7 +770,7 @@ class eppConnection {
      */
     public function readResponse()
     {
-        $response = new eppResponse();
+        $response = new eppResponse(new eppRequest());
         $xml = $this->read(true);
         if (strlen($xml)) {
             if ($response->loadXML($xml)) {
@@ -1099,11 +1105,7 @@ class eppConnection {
      * @throws eppException
      */
     public function useExtension($namespace) {
-        if (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN') {
-            $includepath = dirname(__FILE__).'\\eppExtensions\\'.$namespace.'\\includes.php';
-        } else {
-            $includepath = dirname(__FILE__).'/eppExtensions/'.$namespace.'/includes.php';
-        }
+        $includepath = dirname(__FILE__).'/eppExtensions/'.$namespace.'/includes.php';
         if (is_file($includepath)) {
             include($includepath);
         } else {
@@ -1154,6 +1156,23 @@ class eppConnection {
      */
     private function enableLogging() {
         $this->logging = true;
+    }
+
+    /**
+     * @return integer
+     */
+    public function getMaxMessageLength()
+    {
+        return $this->maxMessageLength;
+    }
+
+    /**
+     * @param integer $maxMessageLength
+     * @return void
+     */
+    public function setMaxMessageLength($maxMessageLength)
+    {
+        $this->maxMessageLength = $maxMessageLength;
     }
 
     /**

@@ -35,10 +35,8 @@ class atEppCreateContactRequest extends eppCreateContactRequest {
         $this->setContactId($contact->getId());
         $this->setPostalInfo($contact->getPostalInfo(0));
         $this->setVoice($contact->getVoice());
-        $this->setFax($contact->getFax());
         $this->setEmail($contact->getEmail());
         $this->setPassword($contact->getPassword());
-        $this->setAtContactDisclosure($contact->getDisclose(), $contact);
         $this->setAtExtensions();
     }
 
@@ -114,41 +112,4 @@ class atEppCreateContactRequest extends eppCreateContactRequest {
         $this->contactobject->appendChild($postalinfo);
     }
 
-    /**
-     * at  voice-, fax-, email disclosure
-     *
-     * @param $contactdisclose
-     * @param atEppContact $contact
-     * @throws DOMException
-     */
-    protected function setAtContactDisclosure($contactdisclose, atEppContact $contact): void
-    {
-        if (!is_null($contactdisclose)) {
-            $disclose = $this->createElement('contact:disclose');
-            $disclose->setAttribute('flag', sprintf('%b', $contactdisclose));
-
-            $disclPhone = $this->createElement('contact:voice');
-            if ($contactdisclose == 1) {
-                $disclPhone->setAttribute('type', eppContact::TYPE_LOC);
-            }
-            if ($contactdisclose != $contact->getWhoisHidePhone()) {
-                $disclose->appendChild($disclPhone);
-            }
-            $disclFax = $this->createElement('contact:fax');
-            if ($contactdisclose == 1) {
-                $disclFax->setAttribute('type', eppContact::TYPE_LOC);
-            }
-            if ($contact->getWhoisHideFax() != $contactdisclose) {
-                $disclose->appendChild($disclFax);
-            }
-            $disclEmail = $this->createElement('contact:email');
-            if ($contactdisclose == 1) {
-                $disclEmail->setAttribute('type', eppContact::TYPE_LOC);
-            }
-            if ($contact->getWhoisHideEmail() != $contactdisclose) {
-                $disclose->appendChild($disclEmail);
-            }
-            $this->contactobject->appendChild($disclose);
-        }
-    }
 }

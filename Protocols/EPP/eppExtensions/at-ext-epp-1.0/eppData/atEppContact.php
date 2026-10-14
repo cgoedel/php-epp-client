@@ -29,6 +29,8 @@ class atEppContact extends eppContact {
     private $whoisHideFax=0;
     private $whoisHideEmail=0;
 
+    private $verificationReport;
+
 
 
 
@@ -43,12 +45,64 @@ class atEppContact extends eppContact {
      * @param bool|false $whoisHideFax
      * @param null $password
      * @param null $status
+     * @param atEppVerificationReport $verificationReport
      * @throws eppException
      */
-    public function __construct($postalInfo = null,$personType=self::PERS_TYPE_UNSPECIFIED, $email = null, $voice = null, $fax = null,$whoisHideEmail=false,$whoisHidePhone=false,$whoisHideFax=false, $password = null, $status = null) {
-        parent::__construct($postalInfo , $email , $voice , $fax , $password , $status );
-        $this->setPersonType($personType);
+    public function __construct($postalInfo = null,$personType=self::PERS_TYPE_UNSPECIFIED, $email = null, $voice = null, $fax = null,$whoisHideEmail=false,$whoisHidePhone=false,$whoisHideFax=false, $password = null, $status = null, $verificationReport = null) {
+       parent::__construct($postalInfo , $email , $voice , $fax , $password , $status );
+       $this->setPersonType($personType);
+        $this->setWhoisHideEmail($whoisHideEmail);
+        $this->setWhoisHideFax($whoisHideFax);
+        $this->setWhoisHidePhone($whoisHidePhone);
+        if ($verificationReport) {
+            $this->setVerificationReport($verificationReport);
+        }
     }
+
+
+
+
+    private function setWhoisHidePhone($whoisHidePhone=false)
+    {
+        $this->whoisHidePhone = $whoisHidePhone ? 1 : 0;
+    }
+
+    private function setWhoisHideFax($whoisHideFax=false)
+    {
+        $this->whoisHideFax = $whoisHideFax? 1 : 0;
+    }
+
+    private function setWhoisHideEmail($whoisHideEmail=false)
+    {
+        $this->whoisHideEmail = $whoisHideEmail? 1 : 0;
+    }
+
+    public function setVerificationReport($verificationReport=null)
+    {
+        $this->verificationReport = $verificationReport;
+    }
+
+
+    public function getWhoisHidePhone()
+    {
+        return $this->whoisHidePhone;
+    }
+
+    public function getWhoisHideFax()
+    {
+        return $this->whoisHideFax;
+    }
+
+    public function getWhoisHideEmail()
+    {
+        return  $this->whoisHideEmail;
+    }
+
+    public function getVerificationReport()
+    {
+        return $this->verificationReport;
+    }
+
 
     private function setPersonType($personType)
     {
@@ -63,6 +117,8 @@ class atEppContact extends eppContact {
     {
         return $this->personType;
     }
+
+
 
     /**
      *

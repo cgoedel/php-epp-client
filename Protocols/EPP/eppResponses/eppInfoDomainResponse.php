@@ -18,7 +18,7 @@ class eppInfoDomainResponse extends eppInfoResponse {
         $nameservers = $this->getDomainNameservers();
         $authinfo = $this->getDomainAuthInfo();
         $domain = new eppDomain($domainname, $registrant, $contacts, $nameservers, 1, $authinfo);
-        foreach ($this->getDomainStatuses() as $status) {
+        foreach ($this->getDomainStatuses() ?? [] as $status) {
             $domain->addStatus($status);
         }
         return $domain;
@@ -44,7 +44,7 @@ class eppInfoDomainResponse extends eppInfoResponse {
     /**
      * Receive an array of statuses
      *
-     * @return null|string[]
+     * @return null|eppStatus[]
      */
     public function getDomainStatuses() {
         $statuses = null;
@@ -210,10 +210,10 @@ class eppInfoDomainResponse extends eppInfoResponse {
             $ns = null;
             foreach ($result as $nameserver) {
                 /* @var $nameserver \DOMElement */
-                if (strstr($nameserver->tagName, ":hostObj")) {
+                if (strstr($nameserver->tagName, "hostObj")) {
                     $ns[] = new eppHost(trim($nameserver->nodeValue));
                 }
-                if (strstr($nameserver->tagName, ":hostAttr")) {
+                if (strstr($nameserver->tagName, "hostAttr")) {
                     $hostname = $nameserver->getElementsByTagName('hostName')->item(0)->nodeValue;
                     $ipaddresses = $nameserver->getElementsByTagName('hostAddr');
                     $ips = null;

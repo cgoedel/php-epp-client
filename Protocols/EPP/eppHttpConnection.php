@@ -52,7 +52,7 @@ class eppHttpConnection extends eppConnection {
 
     public function __destruct() {
         parent::__destruct();
-        if ($this->ch) {
+        if ($this->ch && PHP_VERSION_ID < 80000) {
             curl_close($this->ch);
         }
     }
@@ -82,7 +82,7 @@ class eppHttpConnection extends eppConnection {
             }
 
             if ($this->timeout) {
-                curl_setopt($ch, CURLOPT_POST, CURLOPT_CONNECTTIMEOUT);
+                curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, $this->timeout);
             }
 
             // Set cookie file
