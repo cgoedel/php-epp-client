@@ -109,7 +109,8 @@ class atEppUpdateDomainRequest extends eppUpdateDomainRequest
      * @param $updateInfo
      */
     protected function rewriteAuthorisationCode($updateInfo){
-        if ($authCode = $updateInfo->getAuthorisationCode()) {
+        // $updateInfo can be null and actually is sometimes -> guard against that!
+        if ($updateInfo && ($authCode = $updateInfo->getAuthorisationCode())) {
             $authInfoList_ = $this->getElementsByTagName("update")->item(0)->getElementsByTagName("domain:authInfo");
             $pwdList = $authInfoList_->item(0)->getElementsByTagName("domain:pw");
 
